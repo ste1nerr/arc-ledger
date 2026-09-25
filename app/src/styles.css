@@ -360,6 +360,14 @@ table.ledger select {
   font-size: 13px;
 }
 
+table.ledger select {
+  min-width: 10.5em;
+}
+
+table.ledger td.date {
+  white-space: nowrap;
+}
+
 .badge {
   display: inline-block;
   font-size: 12px;

@@ -66,12 +66,14 @@ Arc implements **EIP-7708**. Every explicit USDC movement emits a standard `Tran
 
 Rules from the docs, confirmed on mainnet:
 - An ERC-20 USDC `transfer()` emits **two** logs (system 18-dec plus contract 6-dec). **Index only the system emitter for USDC** to avoid double counting. Seen in tx `0x00be75d9…1b0f`, logs 3 and 4.
-- Zero-value transfers and **self-transfers (`from == to`) emit no log.** So a `self` row can never come from a USDC log. It can only come from a self-sent tx that paid a fee.
+- Zero-value transfers and **self-transfers (`from == to`) emit no native log.** But an ERC-20 USDC `transfer()` to yourself still emits the 6-decimal log from `0x3600…0000`. Seen on mainnet in tx `0x4f9158fd…7eb6`: a Memo-wrapped `SEND 0.01 USDC` to self. So the app also queries `0x3600…` but keeps **only** `from == to == me` logs, converted 6 → 18 decimals exactly. A native (value) send to yourself leaves no log at all, and it does not change the balance either.
 - For EIP-3009 and relayed transfers, use the log's `from`, not `tx.from`.
 - The docs say the system log is emitted first in the tx. **This is not true on mainnet when the Memo contract wraps the call** (a `BeforeMemo` log comes first). Do not rely on log order.
 - **Gas fees and block rewards emit no log.** ([USDC system events](https://docs.arc.io/arc/references/usdc-system-events))
 
-**Conclusion:** event logs are enough for all USDC and EURC movements. `eth_getLogs` on `[systemEmitter, EURC]` with topic `from = me` or `to = me` gives the complete movement set.
+**Conclusion:** event logs are enough for all USDC and EURC movements. `eth_getLogs` on `[systemEmitter, USDC ERC-20 (self only), EURC]` with topic `from = me` or `to = me` gives the complete movement set.
+
+- Logs from Arc's nodes include **`blockTimestamp`**, so row timestamps need no extra `eth_getBlockByNumber` calls (measured on all three RPCs).
 
 ## 5. Memo (Q4)
 

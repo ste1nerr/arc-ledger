@@ -149,13 +149,28 @@ export function LedgerView({ report, api }: { report: CanonicalReport; api: Anno
   )
 }
 
+/** Memos are often "A|B|C" tokens without spaces: allow line breaks after separators. */
+function Memo({ text }: { text: string }) {
+  const parts = text.split(/(?<=[|/,;_])/)
+  return (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {p}
+          {i < parts.length - 1 && <wbr />}
+        </span>
+      ))}
+    </>
+  )
+}
+
 function Row({ row: r, api }: { row: CanonicalRow; api: AnnotationsApi }) {
   const label = api.annotations.counterpartyLabels[r.counterparty] ?? ''
   const category = api.annotations.categories[rowKey(r)] ?? 'uncategorized'
   const sign = r.direction === 'out' ? '-' : r.direction === 'in' ? '+' : ''
   return (
     <tr>
-      <td data-label="Date (UTC)">
+      <td data-label="Date (UTC)" className="date">
         <a href={txUrl(r.txHash)} target="_blank" rel="noreferrer" title={`${r.txHash} · log ${r.logIndex}`}>
           {utcDateTime(r.timestamp)}
         </a>
@@ -185,8 +200,8 @@ function Row({ row: r, api }: { row: CanonicalRow; api: AnnotationsApi }) {
           />
         </div>
       </td>
-      <td data-label="Memo" className="small" style={{ overflowWrap: 'anywhere' }}>
-        {r.memo ?? <span className="muted">—</span>}
+      <td data-label="Memo" className="small" style={{ overflowWrap: 'break-word', minWidth: '8em' }}>
+        {r.memo === null ? <span className="muted">—</span> : <Memo text={r.memo} />}
       </td>
       <td data-label="Fee (USDC)" className="num" title={r.feeUSDC ?? 'Paid by someone else or already counted on another row of this tx'}>
         {r.feeUSDC ? displayAmount(r.feeUSDC, 9) : <span className="muted">—</span>}

@@ -3,7 +3,8 @@
  * public Arc RPC (data-source decision C, docs/ARC_FACTS.md §8), then build the report.
  */
 import { getAddress, type Address, type Hex } from 'viem'
-import { ARC_CHAIN_ID, ASSETS, ASSET_EMITTER, EURC, MEMO_CONTRACT, MEMO_TOPIC, TRANSFER_TOPIC, type Asset } from '../config/arc'
+import { ARC_CHAIN_ID, ASSETS, ASSET_EMITTER, EURC, MEMO_CONTRACT, MEMO_TOPIC, TRANSFER_TOPIC, USDC_ERC20, type Asset } from '../config/arc'
+import { erc20ToNative } from '../money/usdc'
 import { buildReport, type LedgerSource, type RawTransfer, type TxInfo } from '../report/build'
 import type { CanonicalReport } from '../report/types'
 import { BlockClock } from './blocks'
@@ -45,6 +46,8 @@ export interface LedgerResult {
 
 interface RawLog {
   address: string
+  /** Returned by Arc's nodes (reth); saves one eth_getBlockByNumber per block. */
+  blockTimestamp?: string
   topics: string[]
   data: string
   blockNumber: string
@@ -99,15 +102,25 @@ export async function fetchLedger(address: Address, periodStart: number, periodE
     opts.onProgress?.(p)
   }
   // Transient RPC trouble (rate limits, dropped connections) pauses the scan instead of failing it.
-  const onRetry = ({ delayMs, error }: { delayMs: number; error: unknown }) => {
+  let succeeded = 0
+  const onRetry = ({ attempt, delayMs, error }: { attempt: number; delayMs: number; error: unknown }) => {
     if (!lastProgress || !opts.onProgress) return
-    const why = error instanceof Error && /rate limit|429/i.test(error.message) ? 'The public RPC is rate-limiting us' : 'The RPC dropped a request'
+    const msg = error instanceof Error ? error.message : ''
+    const rateLimited = /rate limit|429/i.test(msg)
+    const host = /calling ([\w.-]+)/.exec(msg)?.[1] ?? 'the Arc RPC'
+    const why = rateLimited
+      ? 'The public RPC is rate-limiting us'
+      : succeeded === 0 && attempt >= 3
+        ? `This browser cannot reach ${host}. An ad/tracker-blocking extension, VPN or firewall may be blocking it; try a private window or allow the site`
+        : 'The RPC dropped a request'
     opts.onProgress({ ...lastProgress, waiting: `${why}; retrying in ${Math.ceil(delayMs / 1000)}s…` })
   }
-  const call = <T>(method: string, params: unknown[], pool?: string) => {
-    if (signal?.aborted) return Promise.reject(abortError())
+  const call = async <T>(method: string, params: unknown[], pool?: string) => {
+    if (signal?.aborted) throw abortError()
     calls++
-    return rpc.call<T>(method, params, { signal, onRetry, ...(pool ? { pool } : {}) })
+    const result = await rpc.call<T>(method, params, { signal, onRetry, ...(pool ? { pool } : {}) })
+    succeeded++
+    return result
   }
 
   // 1. Period → blocks
@@ -121,7 +134,9 @@ export async function fetchLedger(address: Address, periodStart: number, periodE
   const partial = periodEnd > head.timestamp
 
   // 2. Transfer logs. Fast pruned endpoints serve recent blocks with larger ranges.
-  const emitters = assets.map((a) => ASSET_EMITTER[a])
+  // USDC comes from the native system stream. Its ERC-20 twin (0x3600…) is also queried, but only
+  // for self-transfers: Arc emits no native log when from == to (docs/ARC_FACTS.md §4).
+  const emitters = [...assets.map((a) => ASSET_EMITTER[a]), ...(assets.includes('USDC') ? [USDC_ERC20] : [])]
   const archiveEp = rpc.endpoints().find((e) => e.recentOnly === undefined)
   if (!archiveEp) throw new LedgerError('No archive RPC endpoint configured.')
   const recentEp = rpc.endpoints().find((e) => e.recentOnly !== undefined)
@@ -180,8 +195,17 @@ export async function fetchLedger(address: Address, periodStart: number, periodE
     async (t) => {
       const [outLogs, inLogs] = await Promise.all([getLogs(t.from, t.to, t.pool, [TRANSFER_TOPIC, topicMe]), getLogs(t.from, t.to, t.pool, [TRANSFER_TOPIC, null, topicMe])])
       for (const l of [...outLogs, ...inLogs]) {
-        const asset = assetOf(l.address)
-        if (!asset || l.topics[0] !== TRANSFER_TOPIC || l.topics.length !== 3) continue
+        if (l.topics[0] !== TRANSFER_TOPIC || l.topics.length !== 3) continue
+        let value = BigInt(l.data === '0x' ? 0 : l.data)
+        let asset = assetOf(l.address)
+        if (l.address.toLowerCase() === USDC_ERC20.toLowerCase()) {
+          // Everything else in this stream duplicates a native log; keep only self-transfers.
+          if (l.topics[1] !== topicMe || l.topics[2] !== topicMe) continue
+          asset = 'USDC'
+          value = erc20ToNative(value) // 6 → 18 decimals, exact
+        }
+        if (!asset) continue
+        if (l.blockTimestamp) clock.remember(BigInt(l.blockNumber), parseInt(l.blockTimestamp, 16))
         transfers.push({
           asset,
           txHash: l.transactionHash.toLowerCase() as Hex,
@@ -189,7 +213,7 @@ export async function fetchLedger(address: Address, periodStart: number, periodE
           blockNumber: BigInt(l.blockNumber),
           from: addrFromTopic(l.topics[1]!),
           to: addrFromTopic(l.topics[2]!),
-          value: BigInt(l.data === '0x' ? 0 : l.data),
+          value,
         })
       }
       windowsDone++
@@ -225,7 +249,7 @@ export async function fetchLedger(address: Address, periodStart: number, periodE
   )
 
   // 4. Block timestamps for rows.
-  const blocks = [...new Set(transfers.map((t) => t.blockNumber))]
+  const blocks = [...new Set(transfers.map((t) => t.blockNumber))].filter((b) => !clock.has(b))
   let blocksDone = 0
   report({ phase: 'blocks', done: 0, total: blocks.length, message: 'Reading block timestamps…' })
   await runPool(

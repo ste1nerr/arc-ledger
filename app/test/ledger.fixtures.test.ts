@@ -27,10 +27,10 @@ describe('fixture: business (real mainnet, ~24h)', async () => {
   const { report, partial } = await run(f)
 
   it('finds every movement once, sorted by (block, logIndex)', () => {
-    expect(report.rows).toHaveLength(32)
+    expect(report.rows).toHaveLength(35)
     expect(partial).toBe(false)
     const keys = report.rows.map((r) => `${r.blockNumber}:${r.logIndex}`)
-    expect(new Set(keys).size).toBe(32)
+    expect(new Set(keys).size).toBe(35)
     const sorted = [...report.rows].sort((a, b) => (BigInt(a.blockNumber) === BigInt(b.blockNumber) ? a.logIndex - b.logIndex : BigInt(a.blockNumber) < BigInt(b.blockNumber) ? -1 : 1))
     expect(report.rows).toEqual(sorted)
     expect(checkReportConsistency(report)).toEqual([])
@@ -65,6 +65,16 @@ describe('fixture: business (real mainnet, ~24h)', async () => {
     expect(rowsOf(report.rows, '0xf3363698dd')[0]!.memo).toBe('ELLIGENTE|SEND|0x01dE54|USDC|0.01')
   })
 
+  it('USDC self-transfer (ERC-20 interface, no native log) appears as a self row, outside totals', () => {
+    const rows = rowsOf(report.rows, '0xf3363698dd')
+    expect(rows.map((r) => [r.logIndex, r.direction, r.amount, r.decimals, r.feeUSDC])).toEqual([
+      [5, 'self', '0.01', 18, '0.001921374'],
+      [6, 'out', '0.00002', 18, null],
+    ])
+    expect(rows[0]!.counterparty).toBe(f.address)
+    expect(report.rows.filter((r) => r.direction === 'self')).toHaveLength(3)
+  })
+
   it('relayer-paid outflow: no fee for the queried address', () => {
     const [row] = rowsOf(report.rows, '0x797210c377')
     expect(row).toMatchObject({ direction: 'out', asset: 'USDC', amount: '0.1002', feeUSDC: null })
@@ -90,7 +100,7 @@ describe('fixture: business (real mainnet, ~24h)', async () => {
   })
 
   it('has a stable report hash', () => {
-    expect(reportHash(report)).toMatchInlineSnapshot(`"0x1ec7d478c90f1d6a9e2fe4592f8ef3bfa17bc349efd5b9eeb74c5db68fb9c2b6"`)
+    expect(reportHash(report)).toMatchInlineSnapshot(`"0x1146b0fc3d52efb6cb7185c3e1c0bbbfb8715758eea454bb499d56a6f791aba1"`)
   })
 
   it('reports progress through every phase', async () => {

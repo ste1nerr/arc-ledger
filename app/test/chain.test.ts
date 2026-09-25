@@ -135,7 +135,7 @@ describe('BlockClock.firstBlockAtOrAfter', () => {
     const head = await clock.head()
     const range = await clock.blockRange(tsOf(15_000_000), tsOf(20_000_000), head)
     expect(range!.from <= 15_000_000n && range!.to < 20_000_000n).toBe(true)
-    expect(clock.calls).toBeLessThan(80)
+    expect(clock.calls).toBeLessThan(30)
   })
 })
 

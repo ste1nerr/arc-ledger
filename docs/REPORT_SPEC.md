@@ -35,8 +35,8 @@ One row per **Transfer log that involves the queried address**.
 | `logIndex` | `number` | log index within the block. **Never null on Arc**: native transfers have EIP-7708 logs too (the brief assumed `null`, which does not apply) |
 | `blockNumber` | `bigint` | |
 | `timestamp` | ISO-8601 UTC, seconds precision, `Z` suffix | block timestamp. Several blocks can share one |
-| `direction` | `in` \| `out` \| `self` | `out` if `from == me`, `in` if `to == me`, `self` if both (only possible for EURC: USDC self-transfers emit no log) |
-| `asset` | `USDC` \| `EURC` | USDC is taken **only** from emitter `0xffff…fffe`, EURC only from `0xbEf5…21c1`. The ERC-20 USDC logs from `0x3600…0000` are ignored (they duplicate the native log) |
+| `direction` | `in` \| `out` \| `self` | `out` if `from == me`, `in` if `to == me`, `self` if both. A USDC self-transfer has no native log, so it is taken from the ERC-20 stream at `0x3600…`, converted 6 → 18 decimals. A native value send to yourself leaves no log and is not listed |
+| `asset` | `USDC` \| `EURC` | USDC is taken from emitter `0xffff…fffe`, EURC from `0xbEf5…21c1`. ERC-20 USDC logs from `0x3600…0000` duplicate the native log and are ignored, **except** self-transfers (see `direction`) |
 | `amount` | canonical decimal string | unsigned. `direction` gives the sign |
 | `amountRaw` | bigint as decimal string | |
 | `decimals` | `18` (USDC) \| `6` (EURC) | |
