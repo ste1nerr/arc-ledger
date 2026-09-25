@@ -20,7 +20,7 @@ Every fact the app depends on, with its source. "Measured" means checked by hand
 |---|---|---|---|---|
 | `rpc.mainnet.arc.io` | ✅ echoes any `Origin` | **10,000 blocks** (inclusive) and max 2,000 results | full archive (logs + state) | `-32005 rate limit exceeded` |
 | `rpc.quicknode.mainnet.arc.io` | ✅ | 10,000 blocks | full archive | appears to share the rate budget with the primary |
-| `rpc.blockdaemon.mainnet.arc.io` | ✅ `*` | 100,000 blocks, max 20,000 results | ❌ **pruned: only the last ~730k blocks (~4 days)** | `4444 pruned history unavailable` |
+| `rpc.blockdaemon.mainnet.arc.io` | ✅ `*` | 100,000 blocks, max 20,000 results | ❌ **pruned: kept depth varies (measured 731k blocks, then 240k blocks ≈ 34 h, on the same day)** | `4444 pruned history unavailable`. The app uses it for the last 200k blocks only and falls back to the archive RPCs on `4444` |
 | `rpc.drpc.mainnet.arc.io` | ✅ | < 1,000 blocks on the free plan | — | not usable for history |
 
 - **Rate limit:** about **1–2 `eth_getLogs` calls per second in total per client IP**. Bursts above ~3 calls fail. Each call inside a JSON-RPC batch counts separately, so batching does not help.
@@ -123,7 +123,7 @@ Plan for C:
 **Gaps and risks to accept or decide on:**
 1. **Speed.** ~10–15 min for one month and ~2–3 h for a year on the public RPC. That is fine for "close last month", but slow for a reviewer clicking around. Options are in the status report.
 2. **Fee-only transactions** are not itemized. They are detected and quantified via nonce and balance reconciliation (§6).
-3. The Blockdaemon endpoint can speed up only the last ~4 days (100k-block windows).
+3. The Blockdaemon endpoint can speed up only the most recent blocks (100k-block windows; its kept history varies, see §1).
 
 ## 9. Side check (Q7)
 

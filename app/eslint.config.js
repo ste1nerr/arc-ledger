@@ -27,6 +27,7 @@ export default tseslint.config(
   },
   {
     files: ['src/money/**', 'src/report/**', 'src/export/**', 'src/chain/**'],
+    ignores: ['src/chain/rpc.ts'], // transport pacing only, never touches amounts
     rules: { 'no-restricted-syntax': ['error', ...NO_FLOAT_MONEY] },
   },
 )

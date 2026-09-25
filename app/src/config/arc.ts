@@ -48,8 +48,8 @@ export interface RpcEndpoint {
 export const PUBLIC_ENDPOINTS: RpcEndpoint[] = [
   { url: 'https://rpc.mainnet.arc.io', maxLogRange: 10_000n, pool: 'arc-public', rps: 2 },
   { url: 'https://rpc.quicknode.mainnet.arc.io', maxLogRange: 10_000n, pool: 'arc-public', rps: 2 },
-  // Pruned (~730k blocks kept, measured), but allows 100k-block log ranges: great for recent periods.
-  { url: 'https://rpc.blockdaemon.mainnet.arc.io', maxLogRange: 100_000n, recentOnly: 600_000n, pool: 'blockdaemon', rps: 2 },
+  // Pruned (kept depth varied 240k–730k blocks when measured), but allows 100k-block log ranges: great for recent periods.
+  { url: 'https://rpc.blockdaemon.mainnet.arc.io', maxLogRange: 100_000n, recentOnly: 200_000n, pool: 'blockdaemon', rps: 2 },
 ]
 
 /** Deployed PeriodCloseRegistry. Set after the owner deploys it (docs/ARC_FACTS.md §10). */
