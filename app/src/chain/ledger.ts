@@ -7,6 +7,7 @@ import { ARC_CHAIN_ID, ASSETS, ASSET_EMITTER, EURC, MEMO_CONTRACT, MEMO_TOPIC, T
 import { buildReport, type LedgerSource, type RawTransfer, type TxInfo } from '../report/build'
 import type { CanonicalReport } from '../report/types'
 import { BlockClock } from './blocks'
+import { cachingRpc } from './cache'
 import { abortError, isPruned, isRangeError, type Rpc } from './rpc'
 
 export type Phase = 'range' | 'logs' | 'receipts' | 'blocks' | 'balances' | 'done'
@@ -20,6 +21,8 @@ export interface Progress {
   blocksScanned?: bigint
   blocksTotal?: bigint
   message: string
+  /** Set while the scan is paused on a transient RPC failure. */
+  waiting?: string
 }
 
 export interface FetchLedgerOptions {
@@ -83,18 +86,29 @@ async function runPool<T>(items: T[], concurrency: number, worker: (item: T) => 
 
 export async function fetchLedger(address: Address, periodStart: number, periodEnd: number, opts: FetchLedgerOptions): Promise<LedgerResult> {
   const t0 = Date.now()
-  const { rpc, signal } = opts
+  const { signal } = opts
+  const rpc = cachingRpc(opts.rpc) // resumable: finished windows/receipts are not fetched again on retry
   const assets = ASSETS.filter((a) => (opts.assets ?? ASSETS).includes(a))
   if (assets.length === 0) throw new LedgerError('Pick at least one asset.')
   if (!(periodEnd > periodStart)) throw new LedgerError('The period end must be after its start.')
   const me = getAddress(address)
   let calls = 0
+  let lastProgress: Progress | null = null
+  const report = (p: Progress) => {
+    lastProgress = p
+    opts.onProgress?.(p)
+  }
+  // Transient RPC trouble (rate limits, dropped connections) pauses the scan instead of failing it.
+  const onRetry = ({ delayMs, error }: { delayMs: number; error: unknown }) => {
+    if (!lastProgress || !opts.onProgress) return
+    const why = error instanceof Error && /rate limit|429/i.test(error.message) ? 'The public RPC is rate-limiting us' : 'The RPC dropped a request'
+    opts.onProgress({ ...lastProgress, waiting: `${why}; retrying in ${Math.ceil(delayMs / 1000)}s…` })
+  }
   const call = <T>(method: string, params: unknown[], pool?: string) => {
     if (signal?.aborted) return Promise.reject(abortError())
     calls++
-    return rpc.call<T>(method, params, { signal, ...(pool ? { pool } : {}) })
+    return rpc.call<T>(method, params, { signal, onRetry, ...(pool ? { pool } : {}) })
   }
-  const report = (p: Progress) => opts.onProgress?.(p)
 
   // 1. Period → blocks
   report({ phase: 'range', done: 0, total: 1, message: 'Finding the block range for the period…' })

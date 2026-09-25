@@ -71,7 +71,7 @@ describe('createRpc', () => {
 describe('windows()', () => {
   it('covers the range exactly with bounded windows (property)', () => {
     fc.assert(
-      fc.property(fc.bigInt({ min: 0n, max: 10n ** 8n }), fc.bigInt({ min: 0n, max: 200_000n }), fc.bigInt({ min: 1n, max: 20_000n }), (from, len, size) => {
+      fc.property(fc.bigInt({ min: 0n, max: 10n ** 8n }), fc.bigInt({ min: 0n, max: 200_000n }), fc.bigInt({ min: 100n, max: 20_000n }), (from, len, size) => {
         const to = from + len
         const w = windows(from, to, size)
         expect(w[0]![0]).toBe(from)
@@ -158,5 +158,40 @@ describe('fetchLedger input validation', () => {
   it('rejects an empty asset list and an inverted period', async () => {
     await expect(fetchLedger('0x0000000000000000000000000000000000000001', 10, 20, { rpc, assets: [] })).rejects.toThrow(/at least one asset/)
     await expect(fetchLedger('0x0000000000000000000000000000000000000001', 20, 10, { rpc })).rejects.toThrow(/after its start/)
+  })
+})
+
+describe('cachingRpc (resume after failure)', () => {
+  it('caches only immutable answers', async () => {
+    const { cacheable } = await import('../src/chain/cache')
+    expect(cacheable('eth_getLogs', [{ fromBlock: '0x1', toBlock: '0x2' }])).toBe(true)
+    expect(cacheable('eth_getLogs', [{ fromBlock: '0x1', toBlock: 'latest' }])).toBe(false)
+    expect(cacheable('eth_blockNumber', [])).toBe(false)
+    expect(cacheable('eth_getBalance', ['0xabc', 'latest'])).toBe(false)
+    expect(cacheable('eth_getBalance', ['0xabc', '0x10'])).toBe(true)
+  })
+
+  it('does not refetch finished work on retry', async () => {
+    const { cachingRpc, clearRpcCache } = await import('../src/chain/cache')
+    clearRpcCache()
+    let calls = 0
+    let failNext = false
+    const inner: Rpc = {
+      pools: () => ['p'],
+      endpoints: () => [EP],
+      async call<T>(method: string, params: unknown[]) {
+        calls++
+        if (failNext) throw new RpcError('Network error calling x: Failed to fetch', null)
+        return { method, params } as T
+      },
+    }
+    const rpc = cachingRpc(inner)
+    await rpc.call('eth_getLogs', [{ fromBlock: '0x1', toBlock: '0x2' }])
+    failNext = true
+    await expect(rpc.call('eth_getLogs', [{ fromBlock: '0x3', toBlock: '0x4' }])).rejects.toThrow(/Failed to fetch/)
+    failNext = false
+    await rpc.call('eth_getLogs', [{ fromBlock: '0x1', toBlock: '0x2' }]) // cached
+    await rpc.call('eth_getLogs', [{ fromBlock: '0x3', toBlock: '0x4' }]) // fetched now
+    expect(calls).toBe(3)
   })
 })

@@ -38,6 +38,7 @@ export function ProgressPanel({ progress, startedAt, onCancel }: { progress: Pro
         {progress?.message ?? 'Starting…'} <span className="muted">· {Math.round(frac * 100)}% · {formatDuration(elapsed)} elapsed</span>
         {eta !== null && <span className="muted"> · about {formatDuration(eta)} left</span>}
       </p>
+      {progress?.waiting && <p className="notice small">{progress.waiting} Progress is kept.</p>}
       {progress?.phase === 'logs' && progress.blocksTotal ? (
         <p className="muted small">
           Blocks scanned: {progress.blocksScanned?.toLocaleString('en-US')} / {progress.blocksTotal.toLocaleString('en-US')} (the public RPC returns at most 10,000

@@ -111,6 +111,10 @@ export function App() {
             {job.status === 'error' && (
               <div className="error" role="alert">
                 <strong>Could not build the ledger.</strong> {job.message}
+                <p className="small" style={{ margin: '6px 0 0' }}>
+                  The public RPC is rate-limited and sometimes drops requests on long scans. Everything read so far is kept in memory, so Retry continues where it
+                  stopped. For long periods, a personal RPC URL (Advanced) is faster and more reliable.
+                </p>
                 <div className="actions" style={{ marginTop: 8 }}>
                   <button type="button" className="btn secondary" onClick={() => run(job.query)}>
                     Retry

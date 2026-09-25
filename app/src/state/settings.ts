@@ -25,7 +25,7 @@ export function getRpc(customUrl = loadCustomRpc()): Rpc {
   let rpc = cache.get(key)
   if (!rpc) {
     const endpoints: RpcEndpoint[] = custom ? [{ url: custom, maxLogRange: 10_000n, pool: 'custom', rps: 8 }] : PUBLIC_ENDPOINTS
-    rpc = createRpc(endpoints)
+    rpc = createRpc(endpoints, { maxAttempts: Infinity }) // the UI has Cancel; transient errors only pause
     cache.set(key, rpc)
   }
   return rpc

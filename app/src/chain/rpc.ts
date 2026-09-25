@@ -9,6 +9,8 @@ export interface CallOptions {
   signal?: AbortSignal
   /** Restrict to endpoints of this pool (e.g. the pruned-but-fast one). */
   pool?: string
+  /** Called before each retry of a transient failure (rate limit, network, 5xx). */
+  onRetry?: (info: { attempt: number; delayMs: number; error: unknown }) => void
 }
 
 export interface Rpc {
@@ -55,7 +57,7 @@ export class RateLimiter {
   private rps: number
   constructor(
     initialRps: number,
-    private readonly minRps = 0.3,
+    private readonly minRps = 0.7,
     private readonly maxRps = initialRps * 3,
   ) {
     this.rps = initialRps
@@ -70,10 +72,11 @@ export class RateLimiter {
     if (slot > now) await sleep(slot - now, signal)
   }
   onSuccess() {
-    this.rps = Math.min(this.maxRps, this.rps + 0.05)
+    // recover quickly: a few successes bring the rate back after a burst of errors
+    this.rps = Math.min(this.maxRps, this.rps * 1.15)
   }
   onThrottle() {
-    this.rps = Math.max(this.minRps, this.rps / 2)
+    this.rps = Math.max(this.minRps, this.rps * 0.6)
     this.next = Math.max(this.next, Date.now() + 1000 / this.rps)
   }
 }
@@ -100,6 +103,7 @@ interface Pool {
 }
 
 export interface RpcOptions {
+  /** Attempts for transient failures. Infinity = keep waiting until the caller aborts. */
   maxAttempts?: number
   timeoutMs?: number
   fetchImpl?: typeof fetch
@@ -108,7 +112,7 @@ export interface RpcOptions {
 
 export function createRpc(endpoints: RpcEndpoint[], opts: RpcOptions = {}): Rpc {
   if (endpoints.length === 0) throw new Error('no RPC endpoints')
-  const maxAttempts = opts.maxAttempts ?? 8
+  const maxAttempts = opts.maxAttempts ?? 12
   const timeoutMs = opts.timeoutMs ?? 30_000
   const doFetch = opts.fetchImpl ?? fetch.bind(globalThis)
   const pools = new Map<string, Pool>()
@@ -170,9 +174,13 @@ export function createRpc(endpoints: RpcEndpoint[], opts: RpcOptions = {}): Rpc 
           if (isRangeError(e) || isPruned(e)) throw e
           if (e instanceof RpcError && e.code !== null && e.code < 0 && !isRateLimit(e) && e.code !== -32603) throw e
           lastError = e
-          if (isRateLimit(e)) pool.limiter.onThrottle()
-          else pool.cursor++ // network / 5xx: try the next endpoint of the pool
-          await sleep(Math.min(8_000, 400 * 2 ** attempt) * (0.75 + Math.random() / 2), callOpts.signal)
+          // In a browser a 429/5xx without CORS headers surfaces as a bare network error,
+          // so any transport failure also slows the pool down.
+          pool.limiter.onThrottle()
+          if (!isRateLimit(e)) pool.cursor++ // network / 5xx: also try the next endpoint of the pool
+          const delayMs = Math.round(Math.min(30_000, 500 * 2 ** Math.min(attempt, 10)) * (0.75 + Math.random() / 2))
+          callOpts.onRetry?.({ attempt: attempt + 1, delayMs, error: e })
+          await sleep(delayMs, callOpts.signal)
         }
       }
       throw lastError instanceof Error ? lastError : new RpcError(String(lastError), null)
