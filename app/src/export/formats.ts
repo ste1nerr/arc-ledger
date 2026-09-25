@@ -17,7 +17,7 @@ export interface ExportFile {
   content: string
 }
 
-const BOM = '﻿'
+const BOM = '\ufeff'
 const CSV_MIME = 'text/csv;charset=utf-8'
 
 export function baseName(report: CanonicalReport): string {

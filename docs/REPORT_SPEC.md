@@ -144,7 +144,7 @@ UTF-8 **with BOM**, so Excel reads non-ASCII memos correctly. Google Sheets igno
 
 Columns: `row_type` (`transfer` \| `fee` \| `unexplained`), `chain_id`, `timestamp_utc`, `block_number`, `tx_hash`, `log_index` (empty on fee rows), `direction`, `asset`, `amount` (unsigned, exact), `signed_amount` (`-` for out and fee), `decimals`, `amount_raw`, `counterparty` (EIP-55 checksummed), `counterparty_label`, `memo`, `category`.
 
-If `reconciliation[asset].unexplained != 0`, a final row with `row_type = unexplained` is added for that asset, dated `periodEnd − 1s`. Then Σ `signed_amount` = `closing − opening` exactly.
+If `reconciliation[asset].unexplained != 0`, a final row with `row_type = unexplained` is added for that asset, dated `periodEnd − 1s`. Then Σ `signed_amount` = `closing − opening` exactly. A `self` transfer keeps its value in `amount` but has `signed_amount = 0`, because it does not change the balance.
 
 ### 6.2 Xero bank statement CSV
 Source: [Xero Central: Import a bank statement in CSV format](https://central.xero.com/0/article/Import-a-CSV-bank-statement). Only Date and Amount are required. Income and expenses go in **one** Amount column, expenses negative with `-`. No commas in amounts. Accepted dates are `DD/MM/YYYY`, `MM/DD/YYYY` or `YYYY/MM/DD`. Payee must match the Xero contact name exactly to avoid duplicates. Xero shows a column-mapping step on import.
@@ -160,8 +160,10 @@ Source: [Xero Central: Import a bank statement in CSV format](https://central.xe
 
 ### 6.3 Rounding to cents (Xero and QBO)
 - Each line is rounded half away from zero to 2 decimals.
-- Adjustment = `round2(exact net for the asset) − Σ rounded lines`. If it is non-zero, one last line is added: `Payee = Arc Ledger`, `Description = Rounding adjustment: 2-decimal lines vs exact on-chain net <exact> <ASSET>`, `Reference = rounding`, dated the last day of the period.
-- If `unexplained != 0`, one more line with `Reference = unexplained` is added. This makes the imported statement end at the real on-chain balance rounded to the cent.
+- If `unexplained != 0` (and rounds to at least one cent), an extra line is added: `Payee = Arc Ledger`, `Reference = unexplained`, dated the last day of the period.
+- Target = `round2(net + unexplained)`, which equals `round2(closing − opening)`: the real on-chain balance change.
+- Adjustment = `Target − Σ rounded lines`. If it is non-zero, one last line is added: `Payee = Arc Ledger`, `Description = Rounding adjustment: 2-decimal lines vs exact on-chain total <exact> <ASSET>`, `Reference = rounding`, dated the last day of the period.
+- As a result, the imported statement ends at the real on-chain balance, rounded to the cent.
 
 ### 6.4 QuickBooks Online CSV: **4-column variant**
 Sources: [Manually upload transactions into QuickBooks Online](https://quickbooks.intuit.com/learn-support/en-us/help-article/import-transactions/manually-upload-transactions-quickbooks-online/L0rE9OXBz_US_en_US) and [Common errors importing bank transactions using CSV](https://quickbooks.intuit.com/learn-support/en-us/help-article/import-transactions/common-errors-importing-bank-transactions-using/L02IgW462_US_en_US). They say:
