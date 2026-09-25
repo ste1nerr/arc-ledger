@@ -1,0 +1,17 @@
+{
+  "name": "arc-ledger-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "probe": "tsx scripts/probe.ts"
+  },
+  "dependencies": {
+    "viem": "^2.56.9"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

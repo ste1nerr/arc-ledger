@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ste1nerr/arc-ledger/docs/report.schema.json",
+  "title": "Arc Ledger report file (version 1)",
+  "description": "Exported JSON file. Only `report` is hashed. See docs/REPORT_SPEC.md.",
+  "type": "object",
+  "required": ["format", "reportHash", "report"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "arc-ledger-report" },
+    "reportHash": { "$ref": "#/$defs/bytes32", "description": "keccak256 of the canonical serialization of `report`. Informational: Verify always recomputes it." },
+    "report": { "$ref": "#/$defs/report" },
+    "annotations": {
+      "description": "Private, user-set data. NOT part of the hash.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "counterpartyLabels": { "type": "object", "propertyNames": { "$ref": "#/$defs/addressLower" }, "additionalProperties": { "type": "string", "maxLength": 200 } },
+        "categories": {
+          "type": "object",
+          "propertyNames": { "pattern": "^0x[0-9a-f]{64}:\\d+$" },
+          "additionalProperties": { "enum": ["income", "expense", "transfer", "fee", "uncategorized"] }
+        }
+      }
+    },
+    "generator": {
+      "description": "NOT part of the hash.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "$defs": {
+    "addressLower": { "type": "string", "pattern": "^0x[0-9a-f]{40}$" },
+    "bytes32": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+    "uintString": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "decimal": {
+      "description": "Canonical decimal: no exponent, no '+', no leading zeros, no trailing fractional zeros, no '.' without digits after it, '0' for zero (never '-0').",
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*|-?(0|[1-9][0-9]*)\\.[0-9]*[1-9])$"
+    },
+    "unsignedDecimal": { "type": "string", "pattern": "^(0|[1-9][0-9]*|(0|[1-9][0-9]*)\\.[0-9]*[1-9])$" },
+    "asset": { "enum": ["EURC", "USDC"] },
+    "assetTotals": {
+      "type": "object",
+      "required": ["fees", "in", "net", "out"],
+      "additionalProperties": false,
+      "properties": {
+        "in": { "$ref": "#/$defs/unsignedDecimal" },
+        "out": { "$ref": "#/$defs/unsignedDecimal" },
+        "fees": { "$ref": "#/$defs/unsignedDecimal" },
+        "net": { "$ref": "#/$defs/decimal" }
+      }
+    },
+    "assetReconciliation": {
+      "type": "object",
+      "required": ["closing", "opening", "unexplained"],
+      "additionalProperties": false,
+      "properties": {
+        "opening": { "$ref": "#/$defs/unsignedDecimal" },
+        "closing": { "$ref": "#/$defs/unsignedDecimal" },
+        "unexplained": { "$ref": "#/$defs/decimal" }
+      }
+    },
+    "row": {
+      "type": "object",
+      "required": ["amount", "amountRaw", "asset", "blockNumber", "counterparty", "decimals", "direction", "feeUSDC", "logIndex", "memo", "timestamp", "txHash"],
+      "additionalProperties": false,
+      "properties": {
+        "txHash": { "$ref": "#/$defs/bytes32" },
+        "logIndex": { "type": "integer", "minimum": 0 },
+        "blockNumber": { "$ref": "#/$defs/uintString" },
+        "timestamp": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$" },
+        "direction": { "enum": ["in", "out", "self"] },
+        "asset": { "$ref": "#/$defs/asset" },
+        "amount": { "$ref": "#/$defs/unsignedDecimal" },
+        "amountRaw": { "$ref": "#/$defs/uintString" },
+        "decimals": { "enum": [6, 18] },
+        "counterparty": { "$ref": "#/$defs/addressLower" },
+        "memo": { "type": ["string", "null"] },
+        "feeUSDC": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/unsignedDecimal" }] }
+      }
+    },
+    "report": {
+      "type": "object",
+      "required": ["address", "assets", "blockRange", "chainId", "periodEnd", "periodStart", "reconciliation", "rows", "totals", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "const": 1 },
+        "chainId": { "const": 5042 },
+        "address": { "$ref": "#/$defs/addressLower" },
+        "periodStart": { "type": "integer", "minimum": 0, "description": "Unix seconds UTC, inclusive" },
+        "periodEnd": { "type": "integer", "minimum": 1, "description": "Unix seconds UTC, exclusive" },
+        "blockRange": {
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": { "from": { "$ref": "#/$defs/uintString" }, "to": { "$ref": "#/$defs/uintString" } }
+        },
+        "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" }, "minItems": 1, "uniqueItems": true },
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/row" } },
+        "totals": { "type": "object", "propertyNames": { "$ref": "#/$defs/asset" }, "additionalProperties": { "$ref": "#/$defs/assetTotals" } },
+        "reconciliation": {
+          "type": "object",
+          "required": ["itemizedSentTxCount", "sentTxCount"],
+          "properties": {
+            "sentTxCount": { "type": "integer", "minimum": 0 },
+            "itemizedSentTxCount": { "type": "integer", "minimum": 0 },
+            "EURC": { "$ref": "#/$defs/assetReconciliation" },
+            "USDC": { "$ref": "#/$defs/assetReconciliation" }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

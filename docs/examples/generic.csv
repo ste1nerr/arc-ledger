@@ -1,0 +1,8 @@
+﻿row_type,chain_id,timestamp_utc,block_number,tx_hash,log_index,direction,asset,amount,signed_amount,decimals,amount_raw,counterparty,counterparty_label,memo,category
+transfer,5042,2026-09-03T09:15:02Z,17904001,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,0,in,USDC,1250.5,1250.5,18,1250500000000000000000,0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed,Acme GmbH,INV-2026-014,income
+transfer,5042,2026-09-10T14:02:40Z,19121450,0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,1,out,USDC,300,-300,18,300000000000000000000,0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359,,"Design work, Sept",expense
+fee,5042,2026-09-10T14:02:40Z,19121450,0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,,out,USDC,0.001265,-0.001265,18,1265000000000000,,,,fee
+transfer,5042,2026-09-17T00:41:17Z,20260880,0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,2,out,USDC,12.345678901234567891,-12.345678901234567891,18,12345678901234567891,0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB,,,uncategorized
+fee,5042,2026-09-17T00:41:17Z,20260880,0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,,out,USDC,0.002041,-0.002041,18,2041000000000000,,,,fee
+transfer,5042,2026-09-17T00:41:17Z,20260880,0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,4,out,EURC,50,-50,6,50000000,0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb,,,uncategorized
+transfer,5042,2026-09-20T03:12:59Z,20790002,0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd,0,in,EURC,100,100,6,100000000,0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed,Acme GmbH,,uncategorized

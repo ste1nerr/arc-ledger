@@ -1,0 +1,4 @@
+Date,Amount,Payee,Description,Reference
+2026/09/03,1250.50,Acme GmbH,Arc USDC received from 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed - memo: INV-2026-014 - tx 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,0xaaaaaaaa:0
+2026/09/10,-300.00,0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359,"Arc USDC sent to 0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359 - memo: Design work, Sept - tx 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",0xbbbbbbbb:1
+2026/09/17,-12.35,0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB,Arc USDC sent to 0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB - tx 0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,0xcccccccc:2

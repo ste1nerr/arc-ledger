@@ -1,0 +1,133 @@
+{
+  "format": "arc-ledger-report",
+  "reportHash": "0xb10af9fe7785f38eef5791119ee2b092d36ad44aaf7db2c021f727764d516f7a",
+  "report": {
+    "version": 1,
+    "chainId": 5042,
+    "address": "0x287a9e467808940fdb31a7fb3a48d4eeb948a048",
+    "periodStart": 1788220800,
+    "periodEnd": 1790812800,
+    "blockRange": {
+      "from": "17540166",
+      "to": "22651305"
+    },
+    "assets": [
+      "EURC",
+      "USDC"
+    ],
+    "rows": [
+      {
+        "txHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "logIndex": 0,
+        "blockNumber": "17904001",
+        "timestamp": "2026-09-03T09:15:02Z",
+        "direction": "in",
+        "asset": "USDC",
+        "amount": "1250.5",
+        "amountRaw": "1250500000000000000000",
+        "decimals": 18,
+        "counterparty": "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed",
+        "memo": "INV-2026-014",
+        "feeUSDC": null
+      },
+      {
+        "txHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "logIndex": 1,
+        "blockNumber": "19121450",
+        "timestamp": "2026-09-10T14:02:40Z",
+        "direction": "out",
+        "asset": "USDC",
+        "amount": "300",
+        "amountRaw": "300000000000000000000",
+        "decimals": 18,
+        "counterparty": "0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359",
+        "memo": "Design work, Sept",
+        "feeUSDC": "0.001265"
+      },
+      {
+        "txHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "logIndex": 2,
+        "blockNumber": "20260880",
+        "timestamp": "2026-09-17T00:41:17Z",
+        "direction": "out",
+        "asset": "USDC",
+        "amount": "12.345678901234567891",
+        "amountRaw": "12345678901234567891",
+        "decimals": 18,
+        "counterparty": "0xdbf03b407c01e7cd3cbea99509d93f8dddc8c6fb",
+        "memo": null,
+        "feeUSDC": "0.002041"
+      },
+      {
+        "txHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "logIndex": 4,
+        "blockNumber": "20260880",
+        "timestamp": "2026-09-17T00:41:17Z",
+        "direction": "out",
+        "asset": "EURC",
+        "amount": "50",
+        "amountRaw": "50000000",
+        "decimals": 6,
+        "counterparty": "0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb",
+        "memo": null,
+        "feeUSDC": null
+      },
+      {
+        "txHash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "logIndex": 0,
+        "blockNumber": "20790002",
+        "timestamp": "2026-09-20T03:12:59Z",
+        "direction": "in",
+        "asset": "EURC",
+        "amount": "100",
+        "amountRaw": "100000000",
+        "decimals": 6,
+        "counterparty": "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed",
+        "memo": null,
+        "feeUSDC": null
+      }
+    ],
+    "totals": {
+      "EURC": {
+        "in": "100",
+        "out": "50",
+        "fees": "0",
+        "net": "50"
+      },
+      "USDC": {
+        "in": "1250.5",
+        "out": "312.345678901234567891",
+        "fees": "0.003306",
+        "net": "938.151015098765432109"
+      }
+    },
+    "reconciliation": {
+      "sentTxCount": 2,
+      "itemizedSentTxCount": 2,
+      "EURC": {
+        "opening": "0",
+        "closing": "50",
+        "unexplained": "0"
+      },
+      "USDC": {
+        "opening": "500.25",
+        "closing": "1438.401015098765432109",
+        "unexplained": "0"
+      }
+    }
+  },
+  "annotations": {
+    "counterpartyLabels": {
+      "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed": "Acme GmbH"
+    },
+    "categories": {
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0": "income",
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:1": "expense"
+    }
+  },
+  "generator": {
+    "name": "arc-ledger",
+    "version": "0.1.0",
+    "generatedAt": "2026-10-01T08:00:00Z"
+  }
+}
